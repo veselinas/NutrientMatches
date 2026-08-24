@@ -219,40 +219,39 @@ const UI = (() => {
       <div class="view-header">
         <h2>${Utils.escapeHtml(label)}</h2>
         <p class="view-sub">
-          Rich in ${Utils.escapeHtml(label)}: <strong>${richFoods.size}</strong> foods &middot;
           Boosted by: ${listOrDash(compatNutrients, (k) => store.nutrientLabel(k))} &middot;
           Blocked by: ${listOrDash(incompatNutrients, (k) => store.nutrientLabel(k))}
         </p>
+      </div>
+      <div class="nutrient-block">
+        <h3>Rich in ${Utils.escapeHtml(label)} <span class="count-badge">${richFoods.size}</span></h3>
+        ${richFoods.size
+          ? `<ul class="food-list">${[...richFoods]
+              .map((k) => `<li>${Utils.escapeHtml(store.foodLabel(k))}</li>`)
+              .join("")}</ul>`
+          : `<p class="hint">No foods recorded as rich in this nutrient yet.</p>`}
       </div>
       <div id="venn-holder" class="venn-holder"></div>
       <div id="region-detail" class="region-detail"></div>
       <div id="meal-suggestions" class="meal-suggestions"></div>
     `;
 
-    const regions = Venn.render3(document.getElementById("venn-holder"), {
-      aLabel: `Rich in ${label}`,
-      bLabel: "Absorption boosters",
-      cLabel: "Absorption blockers avoided",
-      aSet: richFoods,
-      bSet: compatibleFoods,
-      cSet: incompatibleAvoidedFoods,
+    const regions = Venn.render2(document.getElementById("venn-holder"), {
+      aLabel: "Absorption boosters",
+      bLabel: "Absorption blockers avoided",
+      aSet: compatibleFoods,
+      bSet: incompatibleAvoidedFoods,
       onRegionClick: (region, set) => renderRegionDetail(region, set, {
-        onlyA: `Rich in ${label} only`,
-        onlyB: "Boosters only (not rich in this nutrient)",
-        onlyC: "Blockers avoided only",
-        ab: `Rich in ${label} + has a booster`,
-        ac: `Rich in ${label} + avoids blockers`,
-        bc: "Booster + avoids blockers (not rich in this nutrient)",
-        abc: "Best combination: rich in it, boosted, blockers avoided",
+        onlyA: "Boosters only",
+        onlyB: "Blockers avoided only",
+        ab: `Best pairing for ${label}`,
       }[region]),
     });
 
     // Best-matched foods for meal ideas: the target-nutrient-rich foods
-    // themselves, plus the complementary pairing foods that boost
-    // absorption while avoiding blockers (region B\u2229C), plus any food
-    // that ticks all three circles at once.
-    const bestPairings = Utils.union(regions.abc, regions.bc);
-    renderMealSuggestions(document.getElementById("meal-suggestions"), Utils.union(bestPairings, richFoods));
+    // themselves, plus the complementary pairing foods that both boost
+    // absorption and avoid blockers.
+    renderMealSuggestions(document.getElementById("meal-suggestions"), Utils.union(regions.ab, richFoods));
   }
 
   // ---------------- food view: one 2-circle venn per nutrient ----------------
