@@ -17,6 +17,7 @@ const Auth = (() => {
         clientId: window.APP_CONFIG.msal.clientId,
         authority: window.APP_CONFIG.msal.authority,
         redirectUri: window.APP_CONFIG.msal.redirectUri,
+        navigateToLoginRequestUrl: false,
       },
       cache: {
         cacheLocation: "localStorage",
