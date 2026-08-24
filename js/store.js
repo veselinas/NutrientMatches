@@ -171,14 +171,16 @@ class DataStore {
     const incompatNutrients = this.incompatibleNutrients(nutrientKey);
     let compatibleFoods = this.foodsRichInAny(compatNutrients);
     const incompatibleAvoidedFoods = this.foodsFreeOfAll(incompatNutrients);
+    // Foods rich in at least one incompatible nutrient — the flip side
+    // of incompatibleAvoidedFoods, surfaced as its own "avoid these" list.
+    const incompatibleFoods = this.foodsRichInAny(incompatNutrients);
     const customRule = this.customCompatibilityRules.get(nutrientKey);
     if (customRule) {
       const extra = customRule(this, nutrientKey);
       if (extra instanceof Set) compatibleFoods = Utils.union(compatibleFoods, extra);
     }
-    return { compatibleFoods, incompatibleAvoidedFoods, compatNutrients, incompatNutrients };
+    return { compatibleFoods, incompatibleAvoidedFoods, incompatibleFoods, compatNutrients, incompatNutrients };
   }
-
   // ---------- autocomplete ----------
   searchFoods(query) {
     const q = Utils.normalizeKey(query);
