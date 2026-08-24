@@ -30,7 +30,7 @@ window.APP_CONFIG = {
     // Redirect back to wherever this page is currently served from,
     // stripped of any query string / hash — works for both
     // localhost testing and a deployed URL, on laptop or iPhone.
-    redirectUri: window.location.origin + window.location.pathname,
+    redirectUri: "https://veselinas.github.io/NutrientMatches/",
   },
   // Name of the OneDrive folder (created under the root) that holds
   // the three CSVs. Independent of the app's display name.
