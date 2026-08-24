@@ -1,8 +1,9 @@
 // ============================================================
-// OneDrive sync — stores the three CSVs inside the app's own
-// hidden "Apps/NutrientMatches" folder (special/approot), reached
-// via Microsoft Graph. Requires only the Files.ReadWrite.AppFolder
-// scope, so the app never sees the rest of the user's drive.
+// OneDrive sync — stores the three CSVs inside a top-level OneDrive
+// folder named via APP_CONFIG.oneDriveFolder ("App_NutrientMatches"
+// by default), reached via Microsoft Graph. Requires the broader
+// Files.ReadWrite scope (see config.js) since this is a regular
+// named folder, not the sandboxed AppFolder.
 // ============================================================
 const OneDrive = (() => {
   const base = window.APP_CONFIG.graphBase;
@@ -21,8 +22,9 @@ const OneDrive = (() => {
   }
 
   async function downloadFile(fileName) {
+    const folder = encodeURIComponent(window.APP_CONFIG.oneDriveFolder);
     const res = await authedFetch(
-      `/me/drive/special/approot:/${encodeURIComponent(fileName)}:/content`
+      `/me/drive/root:/${folder}/${encodeURIComponent(fileName)}:/content`
     );
     if (!res) return null;
     if (res.status === 404) return ""; // doesn't exist yet — treat as empty
@@ -31,10 +33,12 @@ const OneDrive = (() => {
   }
 
   async function uploadFile(fileName, csvText) {
-    // PUT ...:/content creates the file (and the AppFolder itself) if
-    // it doesn't already exist, and overwrites it otherwise.
+    // PUT ...:/content creates the folder and the file if they don't
+    // already exist (Graph creates missing intermediate path segments
+    // automatically), and overwrites the file otherwise.
+    const folder = encodeURIComponent(window.APP_CONFIG.oneDriveFolder);
     const res = await authedFetch(
-      `/me/drive/special/approot:/${encodeURIComponent(fileName)}:/content`,
+      `/me/drive/root:/${folder}/${encodeURIComponent(fileName)}:/content`,
       {
         method: "PUT",
         headers: { "Content-Type": "text/csv" },
