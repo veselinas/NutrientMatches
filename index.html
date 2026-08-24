@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Nutrient Matches</title>
+<meta name="description" content="Visualise which foods and nutrients pair well together to maximise nutrient absorption." />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand">Nutrient Matches</div>
+    <div class="auth-block">
+      <span id="auth-status">Loading\u2026</span>
+      <button class="btn" id="auth-button" type="button">Sign in</button>
+    </div>
+  </header>
+
+  <div class="search-row">
+    <select id="mode-select" aria-label="Search by">
+      <option value="nutrient" selected>Nutrient</option>
+      <option value="food">Food</option>
+    </select>
+    <div class="search-input-wrap">
+      <input id="search-input" type="text" autocomplete="off" placeholder="Start typing a nutrient, e.g. Iron\u2026" aria-label="Search" />
+      <ul id="search-suggestions" role="listbox" hidden></ul>
+    </div>
+  </div>
+
+  <main class="content-wrap">
+    <div id="main-content"></div>
+    <p id="sync-status" class="hint" style="margin-top:8px;"></p>
+  </main>
+
+  <footer class="app-footer">
+    <button class="btn" id="btn-add-nutrient" type="button">+ Add nutrient</button>
+    <button class="btn" id="btn-add-food" type="button">+ Add food</button>
+    <button class="btn" id="btn-add-meal" type="button">+ Add meal</button>
+  </footer>
+
+  <div id="modal-root"></div>
+
+  <!-- MSAL browser (login-redirect flow, works on desktop + iOS Safari) -->
+  <script src="https://unpkg.com/@azure/msal-browser@v5.x/lib/msal-browser.min.js"></script>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/csv.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/onedrive.js"></script>
+  <script src="js/venn.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
