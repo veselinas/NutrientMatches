@@ -14,7 +14,14 @@
 //    hidden OneDrive folder — no broad access to the rest of the drive).
 // 4. Copy the "Application (client) ID" into MSAL_CLIENT_ID below.
 
-window.MSAL_CLIENT_ID = "REPLACE_WITH_YOUR_AZURE_AD_CLIENT_ID";
+// 3. Under API permissions, add Microsoft Graph delegated permission
+//    "Files.ReadWrite" (needed because the app now writes to a
+//    specifically-named OneDrive folder rather than the sandboxed
+//    "AppFolder" — that folder's name is tied to the Azure app's own
+//    display name, which we don't want to touch).
+// 4. Copy the "Application (client) ID" into MSAL_CLIENT_ID below.
+
+window.MSAL_CLIENT_ID = "9ade85d2-93c6-4e1c-a9a2-bdd0e3f9b1b5";
 
 window.APP_CONFIG = {
   msal: {
@@ -25,10 +32,12 @@ window.APP_CONFIG = {
     // localhost testing and a deployed URL, on laptop or iPhone.
     redirectUri: window.location.origin + window.location.pathname,
   },
-  // AppFolder scope: the app only ever sees its own dedicated
-  // "NutrientMatches" folder inside the user's OneDrive, not the
-  // whole drive.
-  graphScopes: ["Files.ReadWrite.AppFolder"],
+  // Name of the OneDrive folder (created under the root) that holds
+  // the three CSVs. Independent of the app's display name.
+  oneDriveFolder: "App_NutrientMatches",
+  // Broad Files.ReadWrite scope is required now that we write to a
+  // named folder rather than the sandboxed AppFolder.
+  graphScopes: ["Files.ReadWrite"],
   graphBase: "https://graph.microsoft.com/v1.0",
   files: {
     foodNutrients: "food_nutrients.csv",
