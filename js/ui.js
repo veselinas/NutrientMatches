@@ -280,10 +280,16 @@ const UI = (() => {
 
     for (const nk of nutrientKeys) {
       const nLabel = store.nutrientLabel(nk);
-      const { compatibleFoods, incompatibleAvoidedFoods } = store.getFoodCompatibilitySets(nk);
+      const { compatibleFoods, incompatibleAvoidedFoods, compatNutrients, incompatNutrients } =
+        store.getFoodCompatibilitySets(nk);
       const block = document.createElement("div");
       block.className = "nutrient-block";
-      block.innerHTML = `<h3>${Utils.escapeHtml(nLabel)}</h3><div class="venn-holder" data-nk="${nk}"></div>
+      block.innerHTML = `<h3>${Utils.escapeHtml(nLabel)}</h3>
+        <p class="hint">
+          Boosted by: ${listOrDash(compatNutrients, (k) => store.nutrientLabel(k))} &middot;
+          Blocked by: ${listOrDash(incompatNutrients, (k) => store.nutrientLabel(k))}
+        </p>
+        <div class="venn-holder" data-nk="${nk}"></div>
         <div class="region-detail" data-detail-for="${nk}"></div>`;
       listEl.appendChild(block);
 
