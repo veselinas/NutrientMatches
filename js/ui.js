@@ -212,7 +212,7 @@ const UI = (() => {
     const main = document.getElementById("main-content");
     const label = store.nutrientLabel(nutrientKey);
     const richFoods = store.foodsRichIn(nutrientKey);
-    const { compatibleFoods, incompatibleAvoidedFoods, compatNutrients, incompatNutrients } =
+    const { compatibleFoods, incompatibleAvoidedFoods, incompatibleFoods, compatNutrients, incompatNutrients } =
       store.getFoodCompatibilitySets(nutrientKey);
 
     main.innerHTML = `
@@ -233,6 +233,7 @@ const UI = (() => {
       </div>
       <div id="venn-holder" class="venn-holder"></div>
       <div id="region-detail" class="region-detail"></div>
+      ${incompatibleBlockHtml(incompatibleFoods, `Foods to avoid pairing with ${label}`)}
       <div id="meal-suggestions" class="meal-suggestions"></div>
     `;
 
@@ -280,7 +281,7 @@ const UI = (() => {
 
     for (const nk of nutrientKeys) {
       const nLabel = store.nutrientLabel(nk);
-      const { compatibleFoods, incompatibleAvoidedFoods, compatNutrients, incompatNutrients } =
+      const { compatibleFoods, incompatibleAvoidedFoods, incompatibleFoods, compatNutrients, incompatNutrients } =
         store.getFoodCompatibilitySets(nk);
       const block = document.createElement("div");
       block.className = "nutrient-block";
@@ -290,7 +291,8 @@ const UI = (() => {
           Blocked by: ${listOrDash(incompatNutrients, (k) => store.nutrientLabel(k))}
         </p>
         <div class="venn-holder" data-nk="${nk}"></div>
-        <div class="region-detail" data-detail-for="${nk}"></div>`;
+        <div class="region-detail" data-detail-for="${nk}"></div>
+        ${incompatibleBlockHtml(incompatibleFoods, `Foods to avoid pairing with ${nLabel}`)}`;
       listEl.appendChild(block);
 
       const holder = block.querySelector(".venn-holder");
@@ -334,6 +336,15 @@ const UI = (() => {
   function listOrDash(set, labelFn) {
     if (!set || set.size === 0) return "\u2014";
     return [...set].map((k) => `<span class="chip">${Utils.escapeHtml(labelFn(k))}</span>`).join(" ");
+  }
+
+  function incompatibleBlockHtml(foodKeySet, title) {
+    const items = [...foodKeySet].map((k) => `<li>${Utils.escapeHtml(store.foodLabel(k))}</li>`);
+    return `
+      <div class="incompatible-block">
+        <h4>${Utils.escapeHtml(title)} <span class="count-badge count-badge-danger">${foodKeySet.size}</span></h4>
+        ${items.length ? `<ul class="food-list">${items.join("")}</ul>` : `<p class="hint">None recorded.</p>`}
+      </div>`;
   }
 
   function renderRegionDetail(region, foodKeySet, title) {
