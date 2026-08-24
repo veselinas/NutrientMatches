@@ -48,36 +48,39 @@ const Venn = (() => {
       </g>`;
   }
 
-  function label(x, y, text, anchor = "middle") {
-    return `<text x="${x}" y="${y}" text-anchor="${anchor}" class="venn-label">${Utils.escapeHtml(text)}</text>`;
+    function legendHtml(entries) {
+    // entries: [[label, colorVarName], ...]
+    return `<ul class="venn-legend">${entries
+      .map(
+        ([text, colorVar]) =>
+          `<li><span class="legend-swatch" style="background:var(${colorVar})"></span>${Utils.escapeHtml(text)}</li>`
+      )
+      .join("")}</ul>`;
   }
 
   // --- 3-circle layout ---
   function render3(container, opts) {
     const { aLabel, bLabel, cLabel, aSet, bSet, cSet, onRegionClick } = opts;
     const regions = computeRegions3(aSet, bSet, cSet);
-    const cx1 = 200, cy1 = 175, r = 118;
-    const cx2 = 300, cy2 = 175;
-    const cx3 = 250, cy3 = 262;
+    const cx1 = 200, cy1 = 150, r = 118;
+    const cx2 = 300, cy2 = 150;
+    const cx3 = 250, cy3 = 237;
 
     const pos = {
-      onlyA: [138, 140], onlyB: [362, 140], onlyC: [250, 352],
-      ab: [250, 140], ac: [172, 250], bc: [328, 250], abc: [250, 205],
+      onlyA: [138, 115], onlyB: [362, 115], onlyC: [250, 327],
+      ab: [250, 115], ac: [172, 225], bc: [328, 225], abc: [250, 180],
     };
 
-    let svg = svgOpen("0 0 500 400");
+    let svg = svgOpen("0 15 500 335");
     svg += circle(cx1, cy1, r, COLORS.a, "circle-a");
     svg += circle(cx2, cy2, r, COLORS.b, "circle-b");
     svg += circle(cx3, cy3, r, COLORS.c, "circle-c");
-    svg += label(cx1 - 60, cy1 - 100, aLabel, "start");
-    svg += label(cx2 + 60, cy2 - 100, bLabel, "end");
-    svg += label(cx3, cy3 + 140, cLabel);
     for (const [region, set] of Object.entries(regions)) {
       const [x, y] = pos[region];
       svg += hotspot(x, y, set.size, region);
     }
     svg += "</svg>";
-    container.innerHTML = svg;
+    container.innerHTML = svg + legendHtml([[aLabel, "--circle-a"], [bLabel, "--circle-b"], [cLabel, "--circle-c"]]);
     wireHotspots(container, regions, onRegionClick);
     return regions;
   }
@@ -86,21 +89,19 @@ const Venn = (() => {
   function render2(container, opts) {
     const { aLabel, bLabel, aSet, bSet, onRegionClick } = opts;
     const regions = computeRegions2(aSet, bSet);
-    const cx1 = 165, cy1 = 165, r = 125;
-    const cx2 = 275, cy2 = 165;
-    const pos = { onlyA: [105, 165], onlyB: [335, 165], ab: [220, 165] };
+    const cx1 = 165, cy1 = 150, r = 125;
+    const cx2 = 275, cy2 = 150;
+    const pos = { onlyA: [105, 150], onlyB: [335, 150], ab: [220, 150] };
 
-    let svg = svgOpen("0 0 440 320");
+    let svg = svgOpen("0 25 440 250");
     svg += circle(cx1, cy1, r, COLORS.a, "circle-a");
     svg += circle(cx2, cy2, r, COLORS.b, "circle-b");
-    svg += label(cx1 - 55, cy1 - 105, aLabel, "start");
-    svg += label(cx2 + 55, cy2 - 105, bLabel, "end");
     for (const [region, set] of Object.entries(regions)) {
       const [x, y] = pos[region];
       svg += hotspot(x, y, set.size, region);
     }
     svg += "</svg>";
-    container.innerHTML = svg;
+    container.innerHTML = svg + legendHtml([[aLabel, "--circle-a"], [bLabel, "--circle-b"]]);
     wireHotspots(container, regions, onRegionClick);
     return regions;
   }
