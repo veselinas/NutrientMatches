@@ -347,6 +347,19 @@ const UI = (() => {
       </div>`;
   }
 
+  // Shown instead of the venn diagram + incompatible-foods block when a
+  // nutrient has no compatible or incompatible nutrients at all.
+  function allClearHtml(message = "No known boosters or blockers") {
+    return `
+      <div class="all-clear">
+        <svg viewBox="0 0 120 120" class="all-clear-icon" aria-hidden="true">
+          <circle cx="60" cy="60" r="52" class="all-clear-circle" />
+          <path d="M36 62 L52 78 L86 40" class="all-clear-check" />
+        </svg>
+        <p class="hint">${Utils.escapeHtml(message)}</p>
+      </div>`;
+  }
+
   function renderRegionDetail(region, foodKeySet, title) {
     renderRegionDetailInto(document.getElementById("region-detail"), region, foodKeySet, title);
   }
