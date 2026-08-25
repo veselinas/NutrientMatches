@@ -207,13 +207,14 @@ const UI = (() => {
     else renderFoodView(currentSelection.key);
   }
 
-  // ---------------- nutrient view: 3-circle venn ----------------
+  // ---------------- nutrient view: foods-rich-in list + 2-circle venn ----------------
   function renderNutrientView(nutrientKey) {
     const main = document.getElementById("main-content");
     const label = store.nutrientLabel(nutrientKey);
     const richFoods = store.foodsRichIn(nutrientKey);
     const { compatibleFoods, incompatibleAvoidedFoods, incompatibleFoods, compatNutrients, incompatNutrients } =
       store.getFoodCompatibilitySets(nutrientKey);
+    const noInteractions = compatNutrients.size === 0 && incompatNutrients.size === 0;
 
     main.innerHTML = `
       <div class="view-header">
@@ -231,28 +232,34 @@ const UI = (() => {
               .join("")}</ul>`
           : `<p class="hint">No foods recorded as rich in this nutrient yet.</p>`}
       </div>
-      <div id="venn-holder" class="venn-holder"></div>
-      <div id="region-detail" class="region-detail"></div>
-      ${incompatibleBlockHtml(incompatibleFoods, `Foods to avoid pairing with ${label}`)}
+      ${noInteractions
+        ? allClearHtml()
+        : `<div id="venn-holder" class="venn-holder"></div>
+           <div id="region-detail" class="region-detail"></div>
+           ${incompatibleBlockHtml(incompatibleFoods, `Foods to avoid pairing with ${label}`)}`}
       <div id="meal-suggestions" class="meal-suggestions"></div>
     `;
 
-    const regions = Venn.render2(document.getElementById("venn-holder"), {
-      aLabel: "Absorption boosters",
-      bLabel: "Absorption blockers avoided",
-      aSet: compatibleFoods,
-      bSet: incompatibleAvoidedFoods,
-      onRegionClick: (region, set) => renderRegionDetail(region, set, {
-        onlyA: "Boosters only",
-        onlyB: "Blockers avoided only",
-        ab: `Best pairing for ${label}`,
-      }[region]),
-    });
+    let bestPairings = richFoods;
+    if (!noInteractions) {
+      const regions = Venn.render2(document.getElementById("venn-holder"), {
+        aLabel: "Absorption boosters",
+        bLabel: "Absorption blockers avoided",
+        aSet: compatibleFoods,
+        bSet: incompatibleAvoidedFoods,
+        onRegionClick: (region, set) => renderRegionDetail(region, set, {
+          onlyA: "Boosters only",
+          onlyB: "Blockers avoided only",
+          ab: `Best pairing for ${label}`,
+        }[region]),
+      });
+      bestPairings = Utils.union(regions.ab, richFoods);
+    }
 
     // Best-matched foods for meal ideas: the target-nutrient-rich foods
-    // themselves, plus the complementary pairing foods that both boost
-    // absorption and avoid blockers.
-    renderMealSuggestions(document.getElementById("meal-suggestions"), Utils.union(regions.ab, richFoods));
+    // themselves, plus (when relevant) the complementary pairing foods
+    // that both boost absorption and avoid blockers.
+    renderMealSuggestions(document.getElementById("meal-suggestions"), bestPairings);
   }
 
   // ---------------- food view: one 2-circle venn per nutrient ----------------
@@ -283,6 +290,7 @@ const UI = (() => {
       const nLabel = store.nutrientLabel(nk);
       const { compatibleFoods, incompatibleAvoidedFoods, incompatibleFoods, compatNutrients, incompatNutrients } =
         store.getFoodCompatibilitySets(nk);
+      const noInteractions = compatNutrients.size === 0 && incompatNutrients.size === 0;
       const block = document.createElement("div");
       block.className = "nutrient-block";
       block.innerHTML = `<h3>${Utils.escapeHtml(nLabel)}</h3>
@@ -290,25 +298,29 @@ const UI = (() => {
           Boosted by: ${listOrDash(compatNutrients, (k) => store.nutrientLabel(k))} &middot;
           Blocked by: ${listOrDash(incompatNutrients, (k) => store.nutrientLabel(k))}
         </p>
-        <div class="venn-holder" data-nk="${nk}"></div>
-        <div class="region-detail" data-detail-for="${nk}"></div>
-        ${incompatibleBlockHtml(incompatibleFoods, `Foods to avoid pairing with ${nLabel}`)}`;
+        ${noInteractions
+          ? allClearHtml()
+          : `<div class="venn-holder" data-nk="${nk}"></div>
+             <div class="region-detail" data-detail-for="${nk}"></div>
+             ${incompatibleBlockHtml(incompatibleFoods, `Foods to avoid pairing with ${nLabel}`)}`}`;
       listEl.appendChild(block);
 
-      const holder = block.querySelector(".venn-holder");
-      const detail = block.querySelector(`[data-detail-for="${nk}"]`);
-      const regions = Venn.render2(holder, {
-        aLabel: "Boosts absorption",
-        bLabel: "Blockers avoided",
-        aSet: compatibleFoods,
-        bSet: incompatibleAvoidedFoods,
-        onRegionClick: (region, set) => renderRegionDetailInto(detail, region, set, {
-          onlyA: "Boosts absorption only",
-          onlyB: "Avoids blockers only",
-          ab: `Best pairing for ${nLabel}`,
-        }[region]),
-      });
-      allBest = Utils.union(allBest, regions.ab);
+      if (!noInteractions) {
+        const holder = block.querySelector(".venn-holder");
+        const detail = block.querySelector(`[data-detail-for="${nk}"]`);
+        const regions = Venn.render2(holder, {
+          aLabel: "Boosts absorption",
+          bLabel: "Blockers avoided",
+          aSet: compatibleFoods,
+          bSet: incompatibleAvoidedFoods,
+          onRegionClick: (region, set) => renderRegionDetailInto(detail, region, set, {
+            onlyA: "Boosts absorption only",
+            onlyB: "Avoids blockers only",
+            ab: `Best pairing for ${nLabel}`,
+          }[region]),
+        });
+        allBest = Utils.union(allBest, regions.ab);
+      }
 
       // Extension hook: complementary incomplete-protein pairing.
       if (typeof ESSENTIAL_AMINO_ACIDS !== "undefined" && ESSENTIAL_AMINO_ACIDS.includes(nk)) {
