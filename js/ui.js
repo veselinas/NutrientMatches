@@ -359,7 +359,7 @@ const UI = (() => {
       </div>`;
   }
 
-  // Shown instead of the venn diagram + incompatible-foods block when a
+    // Shown instead of the venn diagram + incompatible-foods block when a
   // nutrient has no compatible or incompatible nutrients at all.
   function allClearHtml(message = "No known boosters or blockers") {
     return `
@@ -369,6 +369,39 @@ const UI = (() => {
           <path d="M36 62 L52 78 L86 40" class="all-clear-check" />
         </svg>
         <p class="hint">${Utils.escapeHtml(message)}</p>
+      </div>`;
+  }
+
+  // Single consolidated window replacing individual per-amino-acid
+  // blocks: shows whether a food is a complete protein, and if not,
+  // which amino acids it does have plus which foods would complete it.
+  function proteinWindowHtml(store, foodKey) {
+    const aminoKeys = foodAminoAcidKeys(store, foodKey);
+    if (aminoKeys.length === 0) return "";
+    const complete = isCompleteProtein(store, foodKey);
+    const presentChips = aminoKeys
+      .map((k) => `<span class="chip">${Utils.escapeHtml(formatAminoAcidLabel(k))}</span>`)
+      .join(" ");
+
+    if (complete) {
+      return `
+        <div class="nutrient-block protein-block">
+          <h3>Protein</h3>
+          <p class="hint">Amino acids present: ${presentChips}</p>
+          ${allClearHtml("Complete protein \u2014 covers all essential amino acids")}
+        </div>`;
+    }
+
+    const partners = findCompleteProteinPairs(store, foodKey);
+    const items = partners.map((p) => `<li>${Utils.escapeHtml(p.label)}</li>`);
+    return `
+      <div class="nutrient-block protein-block">
+        <h3>Protein</h3>
+        <p class="hint">Amino acids present: ${presentChips}</p>
+        <div class="protein-pairs-block">
+          <h4>Combine with to complete the protein <span class="count-badge count-badge-positive">${partners.length}</span></h4>
+          ${items.length ? `<ul class="food-list">${items.join("")}</ul>` : `<p class="hint">No matching foods recorded yet.</p>`}
+        </div>
       </div>`;
   }
 
