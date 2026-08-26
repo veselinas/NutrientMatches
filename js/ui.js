@@ -262,18 +262,21 @@ const UI = (() => {
     renderMealSuggestions(document.getElementById("meal-suggestions"), bestPairings);
   }
 
-  // ---------------- food view: one 2-circle venn per nutrient ----------------
+  // ---------------- food view: one 2-circle venn per (non-amino) nutrient ----------------
   function renderFoodView(foodKey) {
     const main = document.getElementById("main-content");
     const food = store.foods.get(foodKey);
     if (!food) { renderEmptyState(); return; }
     const label = food.display;
-    const nutrientKeys = [...food.nutrients];
+    // Amino acids get their own consolidated Protein window instead of
+    // a regular per-nutrient block.
+    const nutrientKeys = [...food.nutrients].filter((k) => !isAminoAcidKey(k));
+    const aminoKeys = foodAminoAcidKeys(store, foodKey);
 
     main.innerHTML = `
       <div class="view-header">
         <h2>${Utils.escapeHtml(label)}</h2>
-        <p class="view-sub">Rich in: ${listOrDash(food.nutrients, (k) => store.nutrientLabel(k))}</p>
+        <p class="view-sub">Rich in: ${listOrDash(new Set(nutrientKeys), (k) => store.nutrientLabel(k))}</p>
       </div>
       <div id="food-venn-list"></div>
       <div id="meal-suggestions-food" class="meal-suggestions"></div>
@@ -282,7 +285,7 @@ const UI = (() => {
     const listEl = document.getElementById("food-venn-list");
     let allBest = new Set();
 
-    if (nutrientKeys.length === 0) {
+    if (nutrientKeys.length === 0 && aminoKeys.length === 0) {
       listEl.innerHTML = `<p class="empty-state">No nutrients recorded for this food yet. Use "Add nutrient" / edit via "Add food" to add some.</p>`;
     }
 
@@ -321,21 +324,14 @@ const UI = (() => {
         });
         allBest = Utils.union(allBest, regions.ab);
       }
+    }
 
-      // Extension hook: complementary incomplete-protein pairing.
-      if (typeof ESSENTIAL_AMINO_ACIDS !== "undefined" && ESSENTIAL_AMINO_ACIDS.includes(nk)) {
+    if (aminoKeys.length > 0) {
+      listEl.insertAdjacentHTML("beforeend", proteinWindowHtml(store, foodKey));
+      const complete = isCompleteProtein(store, foodKey);
+      if (!complete) {
         const partners = findCompleteProteinPairs(store, foodKey);
-        if (partners.length) {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "btn btn-ghost btn-small";
-          btn.textContent = "Find complementary proteins";
-          btn.onclick = () => renderRegionDetailInto(
-            detail, "protein-pairs", new Set(partners.map((p) => p.key)),
-            "Pairs with this food to cover all essential amino acids"
-          );
-          block.appendChild(btn);
-        }
+        allBest = Utils.union(allBest, new Set(partners.map((p) => p.key)));
       }
     }
 
