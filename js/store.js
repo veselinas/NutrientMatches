@@ -196,6 +196,7 @@ class DataStore {
     const q = Utils.normalizeKey(query);
     const out = [];
     for (const nk of this.nutrientOrder) {
+      if (nk.startsWith("aa_")) continue; // amino acids live in the Protein window instead
       if (!q || nk.includes(q) || this.nutrientLabel(nk).toLowerCase().includes(query.toLowerCase())) {
         out.push({ key: nk, label: this.nutrientLabel(nk) });
       }
