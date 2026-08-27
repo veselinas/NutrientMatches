@@ -6,6 +6,26 @@ const UI = (() => {
   let store = null;
   let onDataChanged = () => {}; // called after any add-* action, for saving
 
+  // "Macro" mode's second dropdown is a fixed list rather than a search
+  // box. candidates are tried in order against the store's actual
+  // nutrient keys (so British/American spelling differences, e.g.
+  // "fibre" vs "fiber", both resolve if either is present).
+  const MACRO_OPTIONS = [
+    { value: "water", label: "Water", candidates: ["water"] },
+    { value: "fat", label: "Fat", candidates: ["fat"] }, // handled specially: one list per *_fat column
+    { value: "fiber", label: "Fibre", candidates: ["fibre", "fiber"] },
+    { value: "gut_bacteria", label: "Gut Bacteria", candidates: ["gut_bacteria"] },
+    { value: "antioxidants", label: "Antioxidants", candidates: ["antioxidants", "antioxidant"] },
+  ];
+
+  function resolveNutrientKey(candidates) {
+    for (const c of candidates) {
+      const k = Utils.normalizeKey(c);
+      if (store.nutrientDisplay.has(k)) return k;
+    }
+    return Utils.normalizeKey(candidates[0]);
+  }
+
   function init(dataStore, changedCallback) {
     store = dataStore;
     onDataChanged = changedCallback || onDataChanged;
@@ -149,14 +169,26 @@ const UI = (() => {
     };
   }
 
-  // ---------------- search bar + autocomplete ----------------
+  // ---------------- search bar: text+autocomplete (nutrient/food) or fixed dropdown (macro) ----------------
   let currentSelection = { mode: "nutrient", key: null };
 
-  function initSearchBar() {
-    const modeSelect = document.getElementById("mode-select");
+  function textSearchMarkup(placeholder) {
+    return `
+      <input id="search-input" type="text" autocomplete="off" placeholder="${Utils.escapeHtml(placeholder)}" aria-label="Search" />
+      <ul id="search-suggestions" role="listbox" hidden></ul>`;
+  }
+
+  function macroSelectMarkup() {
+    return `
+      <select id="macro-select" aria-label="Macro category">
+        <option value="" selected disabled>Choose a macro\u2026</option>
+        ${MACRO_OPTIONS.map((o) => `<option value="${o.value}">${Utils.escapeHtml(o.label)}</option>`).join("")}
+      </select>`;
+  }
+
+  function bindTextSearch(modeSelect) {
     const input = document.getElementById("search-input");
     const suggestions = document.getElementById("search-suggestions");
-
     const runSearch = () => {
       const q = input.value;
       const results = modeSelect.value === "food" ? store.searchFoods(q) : store.searchNutrients(q);
@@ -166,19 +198,8 @@ const UI = (() => {
         .join("");
       suggestions.hidden = false;
     };
-
-    modeSelect.addEventListener("change", () => {
-      input.value = "";
-      suggestions.hidden = true;
-      renderEmptyState();
-    });
-
     input.addEventListener("input", Utils.debounce(runSearch, 120));
     input.addEventListener("focus", runSearch);
-    document.addEventListener("click", (e) => {
-      if (!suggestions.contains(e.target) && e.target !== input) suggestions.hidden = true;
-    });
-
     suggestions.addEventListener("click", (e) => {
       const li = e.target.closest("li[data-key]");
       if (!li) return;
@@ -187,6 +208,46 @@ const UI = (() => {
       suggestions.hidden = true;
       currentSelection = { mode: modeSelect.value, key };
       renderSelection();
+    });
+  }
+
+  function bindMacroSelect() {
+    const select = document.getElementById("macro-select");
+    select.addEventListener("change", () => {
+      if (!select.value) return;
+      currentSelection = { mode: "macro", key: select.value };
+      renderSelection();
+    });
+  }
+
+  function initSearchBar() {
+    const modeSelect = document.getElementById("mode-select");
+    const wrap = document.getElementById("search-input-wrap");
+
+    const rebuildWrap = () => {
+      if (modeSelect.value === "macro") {
+        wrap.innerHTML = macroSelectMarkup();
+        bindMacroSelect();
+      } else {
+        wrap.innerHTML = textSearchMarkup(
+          modeSelect.value === "food" ? "Start typing a food, e.g. Spinach\u2026" : "Start typing a nutrient, e.g. Iron\u2026"
+        );
+        bindTextSearch(modeSelect);
+      }
+    };
+
+    modeSelect.addEventListener("change", () => {
+      currentSelection = { mode: modeSelect.value, key: null };
+      rebuildWrap();
+      renderEmptyState();
+    });
+
+    rebuildWrap();
+
+    document.addEventListener("click", (e) => {
+      const suggestions = document.getElementById("search-suggestions");
+      const input = document.getElementById("search-input");
+      if (suggestions && input && !suggestions.contains(e.target) && e.target !== input) suggestions.hidden = true;
     });
   }
 
@@ -204,7 +265,54 @@ const UI = (() => {
 
   function renderSelection() {
     if (currentSelection.mode === "nutrient") renderNutrientView(currentSelection.key);
+    else if (currentSelection.mode === "macro") renderMacroView(currentSelection.key);
     else renderFoodView(currentSelection.key);
+  }
+
+  // ---------------- macro view: plain rich-in lists ----------------
+  function macroListBlockHtml(label, foodKeySet) {
+    return `
+      <div class="nutrient-block">
+        <h3>${Utils.escapeHtml(label)} <span class="count-badge">${foodKeySet.size}</span></h3>
+        ${foodKeySet.size
+          ? `<ul class="food-list">${[...foodKeySet]
+              .map((k) => `<li>${Utils.escapeHtml(store.foodLabel(k))}</li>`)
+              .join("")}</ul>`
+          : `<p class="hint">No foods recorded as rich in ${Utils.escapeHtml(label.toLowerCase())} yet.</p>`}
+      </div>`;
+  }
+
+  function renderMacroView(macroValue) {
+    const main = document.getElementById("main-content");
+    const opt = MACRO_OPTIONS.find((o) => o.value === macroValue);
+    if (!opt) { renderEmptyState(); return; }
+
+    if (macroValue === "fat") {
+      renderFatView(main);
+      return;
+    }
+
+    const nutrientKey = resolveNutrientKey(opt.candidates);
+    const richFoods = store.foodsRichIn(nutrientKey);
+    main.innerHTML = `
+      <div class="view-header"><h2>${Utils.escapeHtml(opt.label)}</h2></div>
+      ${macroListBlockHtml(`Rich in ${opt.label}`, richFoods)}
+    `;
+  }
+
+  // "Fat" is special: every nutrient column named "fat" or ending in
+  // "_fat" (e.g. saturated_fat) is its own type, each gets its own list.
+  function renderFatView(main) {
+    const fatKeys = store.nutrientOrder.filter((k) => k === "fat" || k.endsWith("_fat"));
+    main.innerHTML = `<div class="view-header"><h2>Fat</h2></div><div id="fat-blocks"></div>`;
+    const holder = document.getElementById("fat-blocks");
+    if (fatKeys.length === 0) {
+      holder.innerHTML = `<p class="empty-state">No fat-type nutrients recorded yet (columns named "fat" or ending in "_fat", e.g. saturated_fat).</p>`;
+      return;
+    }
+    for (const fk of fatKeys) {
+      holder.insertAdjacentHTML("beforeend", macroListBlockHtml(store.nutrientLabel(fk), store.foodsRichIn(fk)));
+    }
   }
 
   // ---------------- nutrient view: foods-rich-in list + 2-circle venn ----------------
