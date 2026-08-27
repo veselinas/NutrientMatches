@@ -113,6 +113,17 @@ h1, h2, h3, h4 { font-family: 'Source Serif 4', Georgia, serif; margin: 0 0 0.3e
   color: var(--ink);
 }
 #search-input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.search-input-wrap select {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--panel);
+  color: var(--ink);
+}
+.search-input-wrap select:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
 #search-suggestions {
   list-style: none;
   margin: 4px 0 0;
